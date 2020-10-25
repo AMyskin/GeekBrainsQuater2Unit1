@@ -43,6 +43,7 @@ class GameViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         guard let numberOfQuestion = self.game.gamesSession?.rightAnswer else {return}
+        game.gamesSession?.questionCount = questions.count
         updateUI(numberOfQuestion: numberOfQuestion)
 
     }
@@ -98,6 +99,7 @@ class GameViewController: UIViewController {
             let score = self.game.gamesSession?.persent ?? ""
             let record = Record(date: Date(), score: score)
             self.game.addRecord(record)
+            self.game.gamesSession = nil
             self.dismiss(animated: true, completion: nil)
         }
     }
