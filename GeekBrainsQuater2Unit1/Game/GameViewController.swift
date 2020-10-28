@@ -71,9 +71,12 @@ class GameViewController: UIViewController {
         })
 
     }
-    deinit {
+    override func viewWillDisappear(_ animated: Bool) {
+        game.gamesSession?.rightAnswer.removeObserver(self)
         game.gamesSession?.questionCount.removeObserver(self)
+        game.gamesSession?.persent.removeObserver(self)
     }
+
     
     private func createStrategy() -> QuestionStrategy {
         switch game.difficulty {
