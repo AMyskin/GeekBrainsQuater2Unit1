@@ -71,6 +71,9 @@ class GameViewController: UIViewController {
         })
 
     }
+    deinit {
+        game.gamesSession?.questionCount.removeObserver(self)
+    }
     
     private func createStrategy() -> QuestionStrategy {
         switch game.difficulty {
