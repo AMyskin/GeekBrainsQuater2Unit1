@@ -45,8 +45,9 @@ class GameViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         guard let numberOfQuestion = self.game.gamesSession?.rightAnswer.value else {return}
-        game.gamesSession?.questionCount.value = questions.count
+        
         questions.append(contentsOf: game.questions)
+        game.gamesSession?.questionCount.value = questions.count
         
         let strategy = createStrategy()
         questions = strategy.createQuestion(in: questions)
