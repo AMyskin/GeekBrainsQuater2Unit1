@@ -17,15 +17,17 @@ protocol GameViewControllerDelegate: class {
 
 class GameViewController: UIViewController {
     
-    let game = Game.shared
+    private let game = Game.shared
     
     weak var gameDelegate: GameViewControllerDelegate?
     weak var gameSceneDelegate: GameViewControllerForSessionDelegate?
     
-    private let questions = Question.arrayQuestion
+    private var questions = Question.arrayQuestion
    // private var numberOfQuestion = 0
     
     @IBOutlet weak var numberOfQuestionLabel: UILabel!
+    @IBOutlet weak var persentLabel: UILabel!
+    @IBOutlet weak var totalCountQuestion: UILabel!
     
     @IBOutlet weak var questionLabel: UILabel!
     
@@ -42,15 +44,53 @@ class GameViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        guard let numberOfQuestion = self.game.gamesSession?.rightAnswer else {return}
+        guard let numberOfQuestion = self.game.gamesSession?.rightAnswer.value else {return}
+        
+        questions.append(contentsOf: game.questions)
+        game.gamesSession?.questionCount.value = questions.count
+        
+        let strategy = createStrategy()
+        questions = strategy.createQuestion(in: questions)
+        
         updateUI(numberOfQuestion: numberOfQuestion)
+        
+        game.gamesSession?.rightAnswer.addObserver(self, options: [.new, .initial], closure: { [weak self] (questionNumber, _) in
+            guard let self = self else { return }
+            
+            self.numberOfQuestionLabel.text = "Номер Вопроса: \(questionNumber + 1)"
+        })
+        game.gamesSession?.questionCount.addObserver(self, options: [.new, .initial], closure: { [weak self] (questionCount, _) in
+            guard let self = self else { return }
+            
+            self.totalCountQuestion.text = "Всего вопросов: \(questionCount)"
+        })
+        game.gamesSession?.persent.addObserver(self, options: [.new, .initial], closure: { [weak self] (persent, _) in
+            guard let self = self else { return }
+            
+            self.persentLabel.text = "Процент: \(persent)"
+        })
 
+    }
+    override func viewWillDisappear(_ animated: Bool) {
+        game.gamesSession?.rightAnswer.removeObserver(self)
+        game.gamesSession?.questionCount.removeObserver(self)
+        game.gamesSession?.persent.removeObserver(self)
+    }
+
+    
+    private func createStrategy() -> QuestionStrategy {
+        switch game.difficulty {
+        case .easy:
+            return SimpleArrayStrategy()
+        case  .hard:
+            return RandomArrayStrategy()
+        }
     }
     
     func getAnswer(_ answerLabel: UIButton, numberOfAnswerButton: Int) -> Bool {
 
         guard let key = answerLabel.title(for: .normal),
-              let numberOfQuestion = self.game.gamesSession?.rightAnswer
+              let numberOfQuestion = self.game.gamesSession?.rightAnswer.value
         else {return false}
         
         
@@ -74,7 +114,8 @@ class GameViewController: UIViewController {
     func nextQuestion(){
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
             guard let self = self else {return}
-           guard let numberOfQuestion = self.game.gamesSession?.rightAnswer else {return}
+           guard let numberOfQuestion = self.game.gamesSession?.rightAnswer.value else {return}
+            
             
             if numberOfQuestion < self.questions.count-1 {
                 
@@ -85,21 +126,34 @@ class GameViewController: UIViewController {
                 
                 
             }
-            self.updateUI(numberOfQuestion: self.game.gamesSession?.rightAnswer ?? 0 )
+            self.updateUI(numberOfQuestion: self.game.gamesSession?.rightAnswer.value ?? 0 )
+            self.getPersent()
            // print(self.game.gamesSession?.questionCount)
         }
     }
     
     func gameOver(){
         guard let numberOfQuestion = self.game.gamesSession?.rightAnswer else {return}
-        gameDelegate?.didEndGame(with: numberOfQuestion, totalQuestion: questions.count)
+        gameDelegate?.didEndGame(with: numberOfQuestion.value, totalQuestion: questions.count)
         DispatchQueue.main.asyncAfter(deadline: .now() + 2) { [weak self] in
-            guard let self = self else {return}
-            let score = self.game.gamesSession?.persent ?? ""
-            let record = Record(date: Date(), score: score)
+            guard let self = self
+            else {return}
+            self.getPersent()
+            let persent = self.game.gamesSession?.persent.value
+            let record = Record(date: Date(), score: String(persent ?? 0))
             self.game.addRecord(record)
+            self.game.gamesSession = nil
             self.dismiss(animated: true, completion: nil)
         }
+    }
+    
+    func getPersent(){
+        guard let right = self.game.gamesSession?.rightAnswer.value,
+              let allquestion = self.game.gamesSession?.questionCount.value
+        else {return}
+        
+        let persent = right * 100 / allquestion
+        self.game.gamesSession?.persent.value = persent
     }
     
     @IBAction func answer1Push(_ sender: UIButton) {
@@ -146,7 +200,8 @@ class GameViewController: UIViewController {
     }
     
     func updateUI(numberOfQuestion: Int){
-        numberOfQuestionLabel.text = "Вопрос номер \(numberOfQuestion+1) из \(questions.count)"
+        //numberOfQuestionLabel.text = "Вопрос номер \(numberOfQuestion+1) из \(questions.count)"
+        
         questionLabel.text = questions[numberOfQuestion].question
         let firstAnswer = questions[numberOfQuestion].answer1.keys.first
         answer1Label.setTitle(firstAnswer, for: .normal)

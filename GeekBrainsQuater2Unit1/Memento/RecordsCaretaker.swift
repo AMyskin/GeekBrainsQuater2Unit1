@@ -13,6 +13,30 @@ class RecordsCaretaker {
     private let decoder = JSONDecoder()
     
     private let key = "results"
+    private let keyQuestion = "questions"
+    
+    
+    func saveQuestion(questions: [Question]) {
+        do {
+            let data = try encoder.encode(questions)
+            UserDefaults.standard.set(data, forKey: keyQuestion)
+        } catch {
+            print(error.localizedDescription)
+        }
+    }
+    
+    func loadQuestion() -> [Question] {
+        guard let data = UserDefaults.standard.data(forKey: keyQuestion) else {
+            return []
+        }
+        
+        do {
+            return try decoder.decode([Question].self, from: data)
+        } catch {
+            print(error.localizedDescription)
+            return []
+        }
+    }
     
     func save(records: [Record]) {
         do {

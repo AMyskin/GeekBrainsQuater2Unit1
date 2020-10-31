@@ -9,11 +9,12 @@ import Foundation
 
 class GameSession {
     
-    var questionCount = 0
-    var rightAnswer = 0
-    var persent : String {
-        return "\(rightAnswer * 100 / questionCount)%"
-    }
+    var questionCount = Observable<Int>(0)
+    var rightAnswer = Observable<Int>(0)
+    var persent = Observable<Int>(0)
+    //String {
+        //return "\(rightAnswer * 100 / questionCount)%"
+   // }
     
  
 
@@ -21,10 +22,10 @@ class GameSession {
     
 }
 
-extension GameSession : GameViewControllerForSessionDelegate {
+extension GameSession : GameViewControllerForSessionDelegate{
     func updateScore(with score: Int, totalQuestion: Int) {
-        self.questionCount = totalQuestion
-        self.rightAnswer = score
+        self.questionCount.value = totalQuestion
+        self.rightAnswer.value = score
     }
     
 
